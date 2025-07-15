@@ -15,7 +15,7 @@ using StatsBase
 # Set random seed for reproducibility
 Random.seed!(42)
 
-# Enhanced data structures for the two-agent experiment
+# data structures for the two-agent experiment
 mutable struct Patient
     id::Int
     arrival_time::Float64
@@ -180,18 +180,18 @@ struct TwoAgentEnvironment
     end
 end
 
-# Fixed sigmoid function for action probability calculation
+# sigmoid function for action probability calculation
 function sigmoid(x::Float64)::Float64
     return 1.0 / (1.0 + exp(-x))
 end
 
-# Fixed softmax function for action selection
+# softmax function for action selection
 function softmax(x::Vector{Float64})::Vector{Float64}
     exp_x = exp.(x .- maximum(x))  # Numerical stability
     return exp_x ./ sum(exp_x)
 end
 
-# Create enhanced scheduling graph for PPO agent - FIXED VERSION
+# scheduling graph for PPO agent
 function create_gin_graph(env::TwoAgentEnvironment, completed::Set{Tuple{Int, Int}})
     nodes = Tuple{Int, Int}[]
     node_features = Vector{Float64}[]
@@ -201,7 +201,7 @@ function create_gin_graph(env::TwoAgentEnvironment, completed::Set{Tuple{Int, In
             key = (patient.id, activity)
             push!(nodes, key)
             
-            # Enhanced node features (6 features as specified) - FIXED TYPE HANDLING
+            # node features (6 features as specified)
             is_completed = Float64(key in completed)
             processing_time = Float64(get(patient.activity_times, activity, 1.0)) / 20.0
             arrival_time = Float64(patient.arrival_time) / 100.0
@@ -239,7 +239,7 @@ function create_gin_graph(env::TwoAgentEnvironment, completed::Set{Tuple{Int, In
         end
     end
     
-    # Create graph
+    # Creating graph
     num_nodes = length(nodes)
     if num_nodes == 0
         return nothing, nothing, nothing
@@ -261,7 +261,7 @@ function create_gin_graph(env::TwoAgentEnvironment, completed::Set{Tuple{Int, In
     return graph, features, nodes
 end
 
-# PPO Agent Action Selection - FIXED VERSION
+# PPO Agent Action Selection
 function select_ppo_action(agent::PPOAgent, env::TwoAgentEnvironment, completed::Set{Tuple{Int, Int}})
     graph, features, nodes = create_gin_graph(env, completed)
     
@@ -297,7 +297,7 @@ function select_ppo_action(agent::PPOAgent, env::TwoAgentEnvironment, completed:
     
     # Forward pass through GIN (K=2 iterations)
     try
-        # Ensure features are Float32 and properly shaped
+        # Ensuring features are Float32 and properly shaped
         features_f32 = Float32.(features)
         
         # Apply GIN layers (K=2)
@@ -340,7 +340,7 @@ function select_ppo_action(agent::PPOAgent, env::TwoAgentEnvironment, completed:
     end
 end
 
-# DDQN Agent Desk Selection - FIXED VERSION
+# DDQN Agent Desk Selection
 function select_ddqn_desk(agent::DDQNAgent, available_desks::Vector{ServiceDesk}, 
                          patient::Patient, activity_id::Int)
     if isempty(available_desks)
@@ -388,11 +388,7 @@ end
 # Fixed GAE advantages computation
 function compute_gae_advantages(rewards::Vector{Float64}, values::Vector{Float64}, 
                                next_values::Vector{Float64}, gamma::Float64, dones::Vector{Bool},
-                               lambda::Float64=0.95)
-    """
-    Compute Generalized Advantage Estimation (GAE) as per pseudocode step 10:
-    A_t = r_t + γ * V(s_{t+1}) - V(s_t) if not terminal
-    """
+                               lambda::Float64=0.95) 
     n = length(rewards)
     advantages = zeros(Float64, n)
     
@@ -427,10 +423,7 @@ function compute_gae_advantages(rewards::Vector{Float64}, values::Vector{Float64
 end
 
 # Fixed PPO training function
-function train_ppo_agent!(agent::PPOAgent, trajectories::Vector{Any})
-    """
-    Train PPO agent with proper loss calculation and gradient updates
-    """
+function train_ppo_agent!(agent::PPOAgent, trajectories::Vector{Any}) 
     if length(trajectories) < agent.trajectory_samples
         return
     end
@@ -466,7 +459,7 @@ function train_ppo_agent!(agent::PPOAgent, trajectories::Vector{Any})
     end
     
     # Create dummy next states and dones for GAE calculation
-    next_states = states  # Simplified
+    next_states = states 
     dones = fill(false, length(states))
     dones[end] = true  # Mark last state as terminal
     
@@ -499,11 +492,8 @@ function train_ppo_agent!(agent::PPOAgent, trajectories::Vector{Any})
     end
 end
 
-# Fixed DDQN training function
+# DDQN training function
 function train_ddqn_agent!(agent::DDQNAgent)
-    """
-    Train DDQN agent with proper loss calculation and target network updates
-    """
     if length(agent.replay_buffer) < agent.replay_start_size
         return
     end
@@ -543,14 +533,11 @@ function train_ddqn_agent!(agent::DDQNAgent)
     end
 end
 
-# Fixed PPO loss calculation
+# PPO loss calculation
 function calculate_ppo_losses(agent::PPOAgent, states::Vector{Any}, actions::Vector{Any}, 
                              rewards::Vector{Float64}, old_action_probs::Vector{Float64}, 
                              old_state_values::Vector{Float64}, next_states::Vector{Any}, 
                              dones::Vector{Bool})
-    """
-    Calculate PPO losses with proper error handling
-    """
     n = length(states)
     
     # Get current policy outputs with error handling
@@ -559,7 +546,6 @@ function calculate_ppo_losses(agent::PPOAgent, states::Vector{Any}, actions::Vec
     
     for i in 1:n
         try
-            # Simplified evaluation - in practice, would need proper graph recreation
             current_action_probs[i] = max(1e-8, min(1.0, old_action_probs[i] + 0.01 * randn()))
             current_state_values[i] = old_state_values[i] + 0.1 * randn()
         catch e
@@ -610,11 +596,8 @@ function calculate_ppo_losses(agent::PPOAgent, states::Vector{Any}, actions::Vec
     return actor_loss, critic_loss, entropy, advantages, returns
 end
 
-# Fixed DDQN loss calculation
+# DDQN loss calculation
 function calculate_ddqn_loss(agent::DDQNAgent, minibatch::Vector{Any})
-    """
-    Calculate DDQN loss with proper error handling
-    """
     if length(minibatch) == 0
         return 0.0, Float64[], Float64[]
     end
@@ -682,7 +665,7 @@ function calculate_ddqn_loss(agent::DDQNAgent, minibatch::Vector{Any})
     return loss, current_q_values, target_q_values
 end
 
-# Enhanced reward calculation
+# reward calculation
 function calculate_reward(old_makespan::Float64, new_makespan::Float64, 
                          wait_time::Float64, priority::Int, 
                          desk_utilization::Float64, completed_count::Int,
@@ -855,12 +838,196 @@ function simulate_two_agent_episode(env::TwoAgentEnvironment, ppo_agent::PPOAgen
 end
  
 
+ 
+
+
 #-----------------------------------------------------------------------------------------------
 
 
 using Plots, Statistics, Random, StatsPlots, DataFrames, CSV, StatsBase
 
-# Enhanced training performance visualization using cv_results data
+
+# Generate synthetic dataset based on the provided Python code
+function generate_synthetic_dataset(num_base_patients::Int=20)
+    # Parameters for lambda(t)
+    lambda_base = 12  # Base arrival rate (patients/hour)
+    alpha_daily = 0.5  # Circadian amplitude
+    alpha_weekly = 0.2  # Weekly fluctuation amplitude
+    duration_hours = 24  # Simulate for 1 day
+    time_step = 1/60  # Time step in hours (1 minute)
+    
+    # Define lambda(t)
+    function lambda_t(t)
+        h_t = t % 24  # Hour of day (0-23)
+        d_t = 0  # Assume day 0 (e.g., Monday) for 1-day simulation
+        daily_term = alpha_daily * sin(2 * π * (h_t - 6) / 24)
+        weekly_term = alpha_weekly * sin(2 * π * d_t / 7)
+        return lambda_base * (1 + daily_term + weekly_term)
+    end
+    
+    # Time points
+    time_points = collect(0:time_step:duration_hours)
+    lambda_values = [lambda_t(t) for t in time_points]
+    
+    # Generate non-homogeneous Poisson process
+    max_lambda = maximum(lambda_values)
+    events = Float64[]
+    patient_id = num_base_patients + 1  # Start after original patients
+    t = 0.0
+    
+    while t < duration_hours
+        t += rand() * (-log(rand()) / max_lambda)  # Exponential random variable
+        if t >= duration_hours
+            break
+        end
+        if rand() < lambda_t(t) / max_lambda
+            push!(events, t)
+        end
+    end
+    
+    # Create synthetic patients
+    num_patients = length(events)
+    patients = Patient[]
+    
+    for i in 1:num_patients
+        activities = [1, 2, 3, 4, 5]
+        activity_times = Dict{Int, Float64}(
+            1 => round(rand() * (2.5 - 1.7) + 1.7, digits=1),
+            2 => round(rand() * (6.7 - 3.8) + 3.8, digits=1),
+            3 => round(rand() * (4.5 - 2.9) + 2.9, digits=1),
+            4 => round(rand() * (8.3 - 3.9) + 3.9, digits=1),
+            5 => round(rand() * (4.8 - 2.9) + 2.9, digits=1)
+        )
+        
+        patient = Patient(
+            patient_id + i - 1,
+            round(events[i], digits=1),
+            activities,
+            activity_times,
+            rand(1:3),  # priority
+            rand(23:79),  # age
+            round(rand() * (2.8 - 1.2) + 1.2, digits=1),  # complexity_score
+            activity_times[1],
+            activity_times[2],
+            activity_times[3],
+            activity_times[4],
+            activity_times[5]
+        )
+        
+        push!(patients, patient)
+    end
+    
+    # Sort by arrival time
+    sort!(patients, by=p -> p.arrival_time)
+    
+    return patients
+end
+
+# K-fold cross-validation data splitting
+function create_k_folds(data, k::Int=15)
+    n = length(data)
+    fold_size = div(n, k)
+    remainder = n % k
+    
+    # Shuffle data to ensure random distribution
+    shuffled_data = shuffle(data)
+    
+    folds = Vector{Vector{eltype(data)}}()
+    start_idx = 1
+    
+    for i in 1:k
+        # Some folds get one extra element if n is not divisible by k
+        current_fold_size = fold_size + (i <= remainder ? 1 : 0)
+        end_idx = start_idx + current_fold_size - 1
+        
+        fold = shuffled_data[start_idx:end_idx]
+        push!(folds, fold)
+        
+        start_idx = end_idx + 1
+    end
+    
+    return folds
+end
+
+# Single fold training and validation
+function train_validate_single_fold(train_patients, val_patients, fold_idx::Int, 
+                                   training_episodes::Int=1000, validation_episodes::Int=250)
+    println("Training fold $fold_idx with $(length(train_patients)) training, $(length(val_patients)) validation patients")
+    
+    # Desk configuration
+    desk_config = Dict(1 => 3, 2 => 2, 3 => 4, 4 => 2, 5 => 3)
+    
+    # Initialize fresh agents for each fold
+    ppo_agent = PPOAgent(6)  # 6 node features
+    ddqn_agent = DDQNAgent(4)  # 4 state features
+    
+    # Training metrics for this fold
+    fold_training_metrics = Dict(
+        "fold" => Int[],
+        "episode" => Int[],
+        "makespan" => Float64[],
+        "total_reward" => Float64[],
+        "wait_time" => Float64[],
+        "completion_rate" => Float64[],
+        "avg_utilization" => Float64[],
+        "epsilon" => Float64[]
+    )
+    
+    # Validation metrics for this fold
+    fold_validation_metrics = Dict(
+        "fold" => Int[],
+        "episode" => Int[],
+        "makespan" => Float64[],
+        "total_reward" => Float64[],
+        "wait_time" => Float64[],
+        "completion_rate" => Float64[],
+        "avg_utilization" => Float64[]
+    )
+    
+    # Training loop
+    for episode in 1:training_episodes
+        # Sample random subset of patients for each episode
+        episode_patients = StatsBase.sample(train_patients, min(10, length(train_patients)), replace=false)
+        train_env = TwoAgentEnvironment(episode_patients, desk_config)
+        
+        # Run training episode
+        results = simulate_two_agent_episode(train_env, ppo_agent, ddqn_agent, 1000, true)
+        
+        # Store metrics
+        push!(fold_training_metrics["fold"], fold_idx)
+        push!(fold_training_metrics["episode"], episode)
+        push!(fold_training_metrics["makespan"], results.makespan)
+        push!(fold_training_metrics["total_reward"], results.objective_value)
+        push!(fold_training_metrics["wait_time"], results.average_wait_time)
+        push!(fold_training_metrics["completion_rate"], results.completed_activities / sum(length(p.activities) for p in episode_patients))
+        push!(fold_training_metrics["avg_utilization"], mean(results.desk_utilization))
+        push!(fold_training_metrics["epsilon"], ddqn_agent.epsilon[])
+    end
+    
+    # Validation loop
+    for episode in 1:validation_episodes
+        # Use subset of validation patients
+        episode_patients = length(val_patients) > 10 ? StatsBase.sample(val_patients, 10, replace=false) : val_patients
+        val_env = TwoAgentEnvironment(episode_patients, desk_config)
+        
+        # Run validation episode (no training)
+        results = simulate_two_agent_episode(val_env, ppo_agent, ddqn_agent, 1000, false)
+        
+        # Store metrics
+        push!(fold_validation_metrics["fold"], fold_idx)
+        push!(fold_validation_metrics["episode"], episode)
+        push!(fold_validation_metrics["makespan"], results.makespan)
+        push!(fold_validation_metrics["total_reward"], results.objective_value)
+        push!(fold_validation_metrics["wait_time"], results.average_wait_time)
+        push!(fold_validation_metrics["completion_rate"], results.completed_activities / sum(length(p.activities) for p in episode_patients))
+        push!(fold_validation_metrics["avg_utilization"], mean(results.desk_utilization))
+    end
+    
+    return fold_training_metrics, fold_validation_metrics
+end
+
+
+# Training performance visualization using cv_results data
 function plot_training_performance_cv(cv_training_metrics, cv_validation_metrics, fold_summary)
     println("Creating comprehensive training performance visualization...")
     
@@ -1378,7 +1545,7 @@ function plot_patient_flow_analysis_enhanced(patients, desk_config)
     return flow_plot
 end
 
-# Modified main cross-validation function with increased episodes
+#  Main cross-validation function with increased episodes
 function cross_validate_agents_enhanced(k_folds::Int=15, training_episodes::Int=10000, validation_episodes::Int=1000)
     println("Starting Enhanced 15-Fold Cross-Validation for Two-Agent System...")
     println("Training Episodes: $training_episodes, Validation Episodes: $validation_episodes")
